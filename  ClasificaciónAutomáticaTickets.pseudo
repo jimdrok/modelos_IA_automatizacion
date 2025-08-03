@@ -1,0 +1,56 @@
+INICIO
+    // Configuración inicial
+    CARGAR_API_KEY("openai_key.env")  
+    LEER_CSV("tickets_soporte.csv") → lista_tickets  
+
+    // Categorías posibles
+    categorias = ["logística", "pagos", "producto defectuoso", "consulta general", "urgente"]  
+
+    // Clasificar cada ticket
+    PARA CADA ticket EN lista_tickets HACER  
+        categoria = CLASIFICAR_CON_IA(ticket.texto, categorias)  
+        ticket.categoria = categoria  
+
+        // Marcar como urgente si aplica
+        SI categoria == "urgente" O CONTIENE_PALABRAS_CLAVE(ticket.texto) ENTONCES  
+            ticket.es_urgente = VERDADERO  
+            ENVIAR_A_HUMANO(ticket)  
+        FIN SI  
+    FIN PARA  
+
+    // Guardar resultados
+    ESCRIBIR_CSV("tickets_clasificados.csv", lista_tickets)  
+FIN
+
+
+para clasificar con ayuda de IA 
+
+FUNCIÓN CLASIFICAR_CON_IA(texto, categorias)  
+    prompt = "Clasifica este ticket en una de estas categorías: {categorias}. Responde solo con el nombre de la categoría.\nTicket: {texto}"  
+    respuesta = LLAMAR_API_OPENAI(prompt, modelo="gpt-3.5-turbo")  
+    DEVOLVER respuesta.texto  
+FIN FUNCIÓN
+
+para buscar palabras claves
+
+FUNCIÓN CONTIENE_PALABRAS_CLAVE(texto)  
+    palabras_clave = ["error crítico", "no funciona", "urgente", "reembolso ya"]  
+    PARA CADA palabra EN palabras_clave HACER  
+        SI texto CONTIENE palabra ENTONCES  
+            DEVOLVER VERDADERO  
+        FIN SI  
+    FIN PARA  
+    DEVOLVER FALSO  
+FIN FUNCIÓN
+
+enviar a un humano
+
+FUNCIÓN ENVIAR_A_HUMANO(ticket)  
+    // Ejemplo: Enviar a Zendesk o Slack  
+    API_ZENDESK.crear_ticket(  
+        asunto: "Ticket Urgente #" + ticket.id,  
+        cuerpo: ticket.texto  
+    )  
+    ESCRIBIR_LOG("Ticket urgente #" + ticket.id + " enviado a humano.")  
+FIN FUNCIÓN
+
